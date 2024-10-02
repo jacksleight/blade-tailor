@@ -3,10 +3,10 @@
 
 # Blade Tailor
 
-Blade Tailor allows you to customise (tailor) the props, classes and attributes used by blade components from outside the template files. This is particularly useful for themeing components from external packages without having to publish their files. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
+Blade Tailor allows you to [customise](https://x.com/jacksleight/status/1839308170407325895) (tailor) the props, classes and attributes used by blade components from outside the template files. This is particularly useful for theming components from external packages without having to publish their template files. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
 
-::warning
-This package has to do some slightly "creative" things in order to hook into the rendering process of external components. While the changes it makes are only very minor and limited to the components you're tailoring, they may have unintended side effects. I can't promise this will always work and there may be edge cases it simply can't handle.
+> [!WARNING] 
+> This package has to make changes to external component templates during compilation, in order to hook into their rendering processes. While the changes it makes are only very minor and limited to the components you're tailoring, they may have unintended side effects. I can't promise this will always work and there may be edge cases it simply can't handle.
 
 ## Installation
 
@@ -18,11 +18,13 @@ composer require jacksleight/blade-tailor
 
 ## Usage
 
-### Tailoring External Components
+### Tailoring Components
 
-Tailoring components is done via the `Tailor` facade. You can etiher make these calls in a service provider or create a dedicated file for your customisaitons in `resources/tailor.php` (this will be loaded automatically). You'll need to add any files where you're defining tailoring rules to your Tailwind config's `content` array to ensure the compiler picks up the new classes.
+Tailoring components is done via the `Tailor::component()` method. You can either make these calls in a service provider or create a dedicated file for your customisations in `resources/tailor.php` (this will be loaded automatically). You'll need to add any files where you're defining tailoring rules to your Tailwind config's `content` array to ensure the compiler picks up the new classes.
 
 ```php
+use JackSleight\BladeTailor\Tailor;
+
 Tailor::component('flux::button')
     ->props([
         'variant' => 'primary', // Customise prop defaults
@@ -51,9 +53,11 @@ Tailor::component('flux::button')
     );
 ```
 
+There's also a `reset()` method that allows you to remove all built-in classes, just in case you really really want to style the whole thing from scratch (but still keep all the behaviour).
+
 ### Making Components Tailorable
 
-If you have a library of your own re-usable components you can make them tailorable simply by replcaing the `@props` directive with `@tailor` and the `$attributes->class(...)` call with `$attributes->tailor(...)`.
+If you have a library of your own re-usable components you can make them tailorable by replacing the `@props` directive with `@tailor` and the `$attributes->class(...)` call with `$attributes->tailor(...)`.
 
 ```blade
 @tailor([
@@ -67,11 +71,20 @@ If you have a library of your own re-usable components you can make them tailora
 
 ### Using Tailwind Merge
 
-This package does not require [TailwindMerge for Laravel](https://github.com/gehrisandro/tailwind-merge-laravel) as a dependency, but if it's installed it will be used when merging your custom classes with the default ones.
+This package does not require [Tailwind Merge](https://github.com/gehrisandro/tailwind-merge-laravel) as a dependency, but if it's installed it will be used when merging your custom classes with the default ones.
 
 ### Using Tailwind Variant Shorthand
 
 The `$attributes->tailor(...)` method supports a custom shorthand for specifying variant classes:
+
+```php
+use JackSleight\BladeTailor\Tailor;
+
+Tailor::component('flux::button')
+    ->root([
+        '[&>[data-flux-icon]]:: text-orange-500 size-10 -mx-2 mb-0.5 self-end',
+    ]);
+```
 
 To make this work with the Tailwind compiler you'll need to add a custom extract method for PHP files to your Tailwind config:
 
