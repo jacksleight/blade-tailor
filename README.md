@@ -3,7 +3,7 @@
 
 # Blade Tailor
 
-Blade Tailor allows you to [customise](https://x.com/jacksleight/status/1839308170407325895) (tailor) the props, classes and attributes used by blade components from outside the template files. This is particularly useful for theming components from external packages without having to publish their template files. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
+Blade Tailor allows you to [customise](https://x.com/jacksleight/status/1839308170407325895) (tailor) the props, classes and attributes used by blade components from outside the template files. This is particularly useful for theming components from external packages without having to publish them. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
 
 > [!WARNING] 
 > This package has to make changes to external component templates during compilation, in order to hook into their rendering processes. While the changes it makes are only very minor and limited to the components you're tailoring, they may have unintended side effects. I can't promise this will always work and there may be edge cases it simply can't handle.
