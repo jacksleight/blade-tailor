@@ -77,15 +77,10 @@ This package does not require [Tailwind Merge](https://github.com/gehrisandro/ta
 
 ### Using Tailwind Variant Shorthand
 
-The `$attributes->tailor(...)` method supports a custom shorthand for specifying variant classes:
+The tailor method supports a custom shorthand for specifying Tailwind variant classes:
 
-```php
-use JackSleight\BladeTailor\Tailor;
-
-Tailor::component('flux::button')
-    ->root([
-        '[&>[data-flux-icon]]:: text-orange-500 size-10 -mx-2 mb-0.5 self-end',
-    ]);
+```
+'hover:: text-orange-500 underline' -> 'hover:text-orange-500 hover:underline'
 ```
 
 To make this work with the Tailwind compiler you'll need to add a custom extract method for PHP files to your Tailwind config:
