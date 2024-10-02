@@ -4,7 +4,11 @@ namespace JackSleight\BladeTailor;
 
 use Closure;
 
-// @todo Refactor this to have the properties grouped by slot rather than the slots grouped by properties
+/**
+ * @todo Refactor this, classes and attributes should
+ * be grouped by slot, rather than slots being grouped
+ * by classes and attributes.
+ */
 class Rule
 {
     public string $name;
@@ -32,19 +36,23 @@ class Rule
     public function root(
         string|array|Closure $classes = [],
         array|Closure $attributes = [],
-        $reset = false
     ) {
-        return $this->slot('root', $classes, $attributes, $reset);
+        return $this->slot('root', $classes, $attributes);
     }
 
     public function slot(
         $name,
         string|array|Closure $classes = [],
         array|Closure $attributes = [],
-        $reset = false
     ): static {
         $this->classes[$name] = $classes;
         $this->attributes[$name] = $attributes;
+
+        return $this;
+    }
+
+    public function reset($reset = true): static
+    {
         $this->reset = $reset;
 
         return $this;

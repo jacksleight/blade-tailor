@@ -3,7 +3,7 @@
 namespace JackSleight\BladeTailor;
 
 use Closure;
-use Flux\ClassBuilder;
+use Flux\ClassBuilder as FluxClassBuilder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\View\ComponentAttributeBag;
@@ -33,7 +33,7 @@ class TailorManager
 
         $rule = $this->rules[$name] ?? null;
 
-        // Merge type props into component props
+        // Merge custom props into default props
         $props = array_merge($props, $rule->props ?? []);
 
         // Same logic as Laravel's @props directive
@@ -66,14 +66,15 @@ class TailorManager
             }
         }
 
-        // Collect data to pass to tailor closures
+        // Collect data to pass to closures
         $pass = Arr::only($data, array_merge(['attributes'], array_keys($props)));
 
-        // Store tailor data and persist key in class attribute
+        // Store custom data and persist key in class attribute
         foreach ($slots as $slot) {
+            $key = '__tailor_'.uniqid().'__';
             $classes = $rule->classes[$slot] ?? [];
             $attributes = $rule->attributes[$slot] ?? [];
-            $attributes = [
+            $this->customs[$key] = [
                 'reset' => $rule->reset,
                 'classes' => $classes instanceof Closure
                     ? app()->call($classes->bindTo($this, $this), $pass)
@@ -82,8 +83,6 @@ class TailorManager
                     ? app()->call($attributes->bindTo($this, $this), $pass)
                     : Arr::wrap($attributes),
             ];
-            $key = '__tailor_'.uniqid().'__';
-            $this->customs[$key] = $attributes;
             if ($slot === 'root') {
                 $data['attributes'] = $data['attributes']->class([$key]);
             } else {
@@ -96,12 +95,13 @@ class TailorManager
 
     public function apply(ComponentAttributeBag $bag, $classes)
     {
-        if ($classes instanceof ClassBuilder) {
+        if ($classes instanceof FluxClassBuilder) {
             $classes = (string) $classes;
         }
 
-        $classes = Arr::toCssClasses($bag->get('class'));
-        if (! $key = Str::match('/__tailor_.*?__/', $classes)) {
+        $passed = Arr::toCssClasses($bag->get('class'));
+
+        if (! $key = Str::match('/__tailor_.*?__/', $passed)) {
             return $bag->class($classes);
         }
 
@@ -112,11 +112,39 @@ class TailorManager
         return $bag
             ->merge([
                 'class' => $this->resolveClasses([
-                    ...Arr::wrap(! $custom['reset'] ? Str::replace($key, '', $classes) : []),
+                    ...Arr::wrap($custom['reset'] ? [] : $classes),
                     ...Arr::wrap($custom['classes']),
+                    ...Arr::wrap(Str::replace($key, '', $passed)),
                 ]),
-                ...($custom['attributes'] ?? []),
+                ...$custom['attributes'] ?? [],
             ], false);
+    }
+
+    public function inject($string)
+    {
+        if (Str::contains($string, '@tailor')) {
+            return $string;
+        }
+
+        $name = $this->lookupComponentName(app('blade.compiler')->getPath());
+
+        if (! ($this->rules[$name] ?? null)) {
+            return $string;
+        }
+
+        if (Str::contains($string, '@props(')) {
+            $string = Str::replace('@props(', '@tailor(', $string);
+        } else {
+            $string = "@tailor\n".$string;
+        }
+
+        $string = Str::replaceMatches(
+            '/(attributes(->\w+\(.*\))*->)class\(/i',
+            '$1tailor(',
+            $string,
+        );
+
+        return $string;
     }
 
     public function compile($expression)
@@ -173,21 +201,38 @@ unset(\$__tailor_name);
 
     protected function resolveComponentName($name)
     {
-        $parts = [];
+        [$prefix, $name] = explode('::', $name);
 
-        if (Str::contains($name, '::')) {
-            $prefixes = collect(app('blade.compiler')->getAnonymousComponentPaths())
-                ->mapWithKeys(fn ($path) => [$path['prefixHash'] => $path['prefix']])
-                ->all();
-            [$namespace, $name] = explode('::', $name);
-            if (isset($prefixes[$namespace])) {
-                $namespace = $prefixes[$namespace];
-            }
-            $parts[] = $namespace;
+        $group = collect(app('blade.compiler')->getAnonymousComponentPaths())
+            ->mapWithKeys(fn ($group) => [$group['prefixHash'] => $group])
+            ->get($prefix);
+
+        $prefix = $group['prefix'];
+
+        $name = Str::between($name, 'components.', '.index');
+
+        return $prefix.'::'.$name;
+    }
+
+    protected function lookupComponentName($path)
+    {
+        $group = collect(app('blade.compiler')->getAnonymousComponentPaths())
+            ->filter(fn ($group) => Str::startsWith($path, $group['path']))
+            ->first();
+
+        if (! $group) {
+            return;
         }
 
-        $parts[] = Str::between($name, 'components.', '.index');
+        $prefix = $group['prefix'];
 
-        return implode('::', $parts);
+        $name = Str::of($path)
+            ->after($group['path'])
+            ->before('.blade.php')
+            ->trim('/')
+            ->replace('/', '.')
+            ->between('components.', '.index');
+
+        return $prefix.'::'.$name;
     }
 }

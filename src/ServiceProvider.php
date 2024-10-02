@@ -5,7 +5,6 @@ namespace JackSleight\BladeTailor;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
-use Illuminate\Support\Str;
 use Illuminate\View\ComponentAttributeBag;
 
 class ServiceProvider extends BaseServiceProvider
@@ -17,26 +16,24 @@ class ServiceProvider extends BaseServiceProvider
 
     public function boot()
     {
-        Blade::directive('tailor', fn ($expression) => Tailor::compile($expression));
+        app('blade.compiler')->prepareStringsForCompilationUsing(
+            fn ($string) => Tailor::inject($string)
+        );
 
-        ComponentAttributeBag::macro('tailor', fn ($classes) => Tailor::apply($this, $classes));
+        View::creator('*',
+            fn ($view) => $view->with('__tailor_name', $view->name())
+        );
 
-        View::creator('*', function ($view) {
-            $view->with('__tailor_name', $view->name());
-        });
+        Blade::directive('tailor',
+            fn ($expression) => Tailor::compile($expression)
+        );
 
-        app('blade.compiler')->prepareStringsForCompilationUsing(function ($string) {
-            if (! Str::contains($string, '@props(')) {
-                return $string;
-            }
-            $string = Str::replace('@props(', '@tailor(', $string);
-            $string = Str::replaceMatches(
-                '/(attributes(->\w+\(.*\))*->)class\(/i', // Needs more work
-                '$1tailor(',
-                $string,
-            );
+        ComponentAttributeBag::macro('tailor',
+            fn ($classes) => Tailor::apply($this, $classes)
+        );
 
-            return $string;
-        });
+        if (file_exists($file = resource_path('tailor.php'))) {
+            require_once $file;
+        }
     }
 }
