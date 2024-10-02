@@ -69,6 +69,8 @@ If you have a library of your own re-usable components you can make them tailora
 </div>
 ```
 
+Technicailly this isn't really necessary, as the package will attempt to make these changes itself if it detects a tailored component, however doing it explicitly is more robust.
+
 ### Using Tailwind Merge
 
 This package does not require [Tailwind Merge](https://github.com/gehrisandro/tailwind-merge-laravel) as a dependency, but if it's installed it will be used when merging your custom classes with the default ones.
