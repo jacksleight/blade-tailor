@@ -16,21 +16,21 @@ class ServiceProvider extends BaseServiceProvider
 
     public function boot()
     {
-        app('blade.compiler')->prepareStringsForCompilationUsing(
-            fn ($string) => Tailor::inject($string)
-        );
+        app('blade.compiler')->prepareStringsForCompilationUsing(function ($string) {
+            return Tailor::inject($string);
+        });
 
-        View::creator('*',
-            fn ($view) => $view->with('__tailor_name', $view->name())
-        );
+        View::creator('*', function ($view) {
+            return Tailor::prepare($view);
+        });
 
-        Blade::directive('tailor',
-            fn ($expression) => Tailor::compile($expression)
-        );
+        Blade::directive('tailor', function ($expression) {
+            return Tailor::compile($expression);
+        });
 
-        ComponentAttributeBag::macro('tailor',
-            fn ($classes) => Tailor::apply($this, $classes)
-        );
+        ComponentAttributeBag::macro('tailor', function ($classes) {
+            return Tailor::apply($this, $classes);
+        });
 
         if (file_exists($file = resource_path('tailor.php'))) {
             require_once $file;

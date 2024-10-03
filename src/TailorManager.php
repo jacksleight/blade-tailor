@@ -18,7 +18,7 @@ class TailorManager
 
     public function component($name)
     {
-        $name = $this->normalizeComponentName($name);
+        $name = $this->normalizeName($name);
 
         if (! isset($this->rules[$name])) {
             $this->rules[$name] = new Rule($name);
@@ -29,7 +29,7 @@ class TailorManager
 
     public function resolve($data, $props = [])
     {
-        $name = $this->resolveComponentName($data['__tailor_name']);
+        $name = $data['__tailor_name'];
 
         $rule = $this->rules[$name] ?? null;
 
@@ -126,9 +126,9 @@ class TailorManager
             return $string;
         }
 
-        $name = $this->lookupComponentName(app('blade.compiler')->getPath());
+        $name = $this->lookupName(app('blade.compiler')->getPath());
 
-        if (! ($this->rules[$name] ?? null)) {
+        if (! isset($this->rules[$name])) {
             return $string;
         }
 
@@ -145,6 +145,17 @@ class TailorManager
         );
 
         return $string;
+    }
+
+    public function prepare($view)
+    {
+        $name = $this->resolveName($view->name());
+
+        if (! isset($this->rules[$name])) {
+            return $view;
+        }
+
+        return $view->with('__tailor_name', $name);
     }
 
     public function compile($expression)
@@ -190,7 +201,7 @@ unset(\$__tailor_name);
         return $classes;
     }
 
-    protected function normalizeComponentName($name)
+    protected function normalizeName($name)
     {
         if (Str::contains($name, '::')) {
             return $name;
@@ -199,13 +210,21 @@ unset(\$__tailor_name);
         return Str::replace(':', '::', $name);
     }
 
-    protected function resolveComponentName($name)
+    protected function resolveName($name)
     {
+        if (! Str::contains($name, '::')) {
+            return;
+        }
+
         [$prefix, $name] = explode('::', $name);
 
         $group = collect(app('blade.compiler')->getAnonymousComponentPaths())
             ->mapWithKeys(fn ($group) => [$group['prefixHash'] => $group])
             ->get($prefix);
+
+        if (! $group) {
+            return;
+        }
 
         $prefix = $group['prefix'];
 
@@ -214,7 +233,7 @@ unset(\$__tailor_name);
         return $prefix.'::'.$name;
     }
 
-    protected function lookupComponentName($path)
+    protected function lookupName($path)
     {
         $group = collect(app('blade.compiler')->getAnonymousComponentPaths())
             ->filter(fn ($group) => Str::startsWith($path, $group['path']))

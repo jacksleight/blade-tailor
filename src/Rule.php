@@ -51,7 +51,7 @@ class Rule
         return $this;
     }
 
-    public function reset($reset = true): static
+    public function reset(boolean $reset): static
     {
         $this->reset = $reset;
 

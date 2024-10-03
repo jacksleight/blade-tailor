@@ -3,10 +3,10 @@
 
 # Blade Tailor
 
-Blade Tailor allows you to [customise](https://x.com/jacksleight/status/1839308170407325895) (tailor) the props, classes and attributes used by blade components from outside the template files. This is particularly useful for theming components from external packages without having to publish them. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
+Blade Tailor allows you to customise (tailor) the props, classes and attributes used by blade components from outside the template files. This is particularly useful for theming components from external packages without having to publish them. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
 
 > [!WARNING] 
-> This package has to make changes to external component templates during compilation, in order to hook into their rendering processes. While the changes it makes are only very minor and limited to the components you're tailoring, they may have unintended side effects. I can't promise this will always work and there may be edge cases it can't handle.
+> This package needs to alter external component templates during compilation in order to hook into their rendering processes. The changes it makes are very minor and limited to the components you're tailoring, but there may be edge cases that result in unexpected behaviour.
 
 ## Installation
 
@@ -20,7 +20,7 @@ composer require jacksleight/blade-tailor
 
 ### Tailoring Components
 
-Tailoring components is done via the `Tailor::component()` method. You can either make these calls in a service provider or create a dedicated file for your customisations in `resources/tailor.php` (this will be loaded automatically). You'll need to add any files where you're defining tailoring rules to your Tailwind config's `content` array to ensure the compiler picks up the new classes.
+Tailoring components is done via the `Tailor::component()` method. You can either make these calls in a service provider or create a dedicated file for your customisations in `resources/tailor.php` (this will be loaded automatically). When you add a rule for a brand new component you need to run `php artisan view:clear`, as the template will need to be recompiled. Further changes will not require recompiling.
 
 ```php
 use JackSleight\BladeTailor\Tailor;
@@ -50,7 +50,17 @@ Tailor::component('flux::button')
         classes: [
             'text-red-500',
         ]
-    );
+    )
+    ->reset(true); // Remove all built-in styles 
+```
+
+You'll need to add any files where you're defining tailoring rules to your Tailwind config's `content` array to ensure the compiler picks up the new classes:
+
+```js
+content: [
+    // ...
+    "./resources/tailor.php",
+],
 ```
 
 There's also a `reset()` method that allows you to remove all built-in classes, just in case you really really want to style the whole thing from scratch (but still keep all the behaviour).
