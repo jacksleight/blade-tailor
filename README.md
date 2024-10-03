@@ -48,7 +48,7 @@ Tailor::component('flux::button')
             'text-red-500',
         ]
     )
-    ->reset(true); // Remove all built-in styles 
+    ->reset(true); // Remove all default styles
 ```
 
 You'll need to add any files where you're defining tailoring rules to your Tailwind config's `content` array to ensure the compiler picks up the new classes:
