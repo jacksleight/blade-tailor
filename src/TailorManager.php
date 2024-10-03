@@ -35,12 +35,16 @@ class TailorManager
 
     public function resolve($data, $props = [])
     {
-        $name = $data['__tailor_name'];
+        $name = $data['__tailor_name'] ?? null;
 
         $alterations = $this->alterations($name);
 
         // Merge result props into default props
-        $props = array_merge($props, ...$alterations->pluck('props')->all());
+        $props = $alterations
+            ->map(fn ($alteration) => $alteration->props())
+            ->unshift($props)
+            ->flatMap(fn ($props) => $props)
+            ->all();
 
         // Same logic as Laravel's @props directive
         $data['attributes'] = $data['attributes'] ?? new ComponentAttributeBag;
@@ -72,36 +76,24 @@ class TailorManager
             }
         }
 
-        // Collect data to pass to closures
-        $pass = Arr::only($data, array_merge(['attributes'], array_keys($props)));
+        // Collect args to pass to closures
+        $args = Arr::only($data, array_merge(['attributes'], array_keys($props)));
 
         // Merge and store alterations and persist key in class attribute
         foreach ($slots as $slot) {
             $key = '__tailor_'.uniqid().'__';
-            $reset = $alterations
-                ->contains(fn ($alteration) => $alteration->reset);
-            $classes = array_merge(...$alterations
-                ->map(function ($alteration) use ($slot, $pass) {
-                    $classes = $alteration->slots[$slot]['classes'];
-
-                    return Arr::wrap($classes instanceof Closure
-                        ? app()->call($classes->bindTo($this, $this), $pass)
-                        : $classes);
-                })
-                ->all());
-            $attributes = array_merge(...$alterations
-                ->map(function ($alteration) use ($slot, $pass) {
-                    $attributes = $alteration->slots[$slot]['attributes'];
-
-                    return $attributes instanceof Closure
-                        ? app()->call($attributes->bindTo($this, $this), $pass)
-                        : $attributes;
-                })
-                ->all());
             $this->results[$key] = [
-                'reset' => $reset,
-                'classes' => $classes,
-                'attributes' => $attributes,
+                'reset' => $alterations
+                    ->contains(fn ($alteration) => $alteration->reset()),
+                'replace' => $alterations
+                    ->flatMap(fn ($alteration) => $alteration->replace())
+                    ->all(),
+                'classes' => $alterations
+                    ->flatMap(fn ($alteration) => Arr::wrap($this->evaluate($alteration->classes($slot), $args)))
+                    ->all(),
+                'attributes' => $alterations
+                    ->flatMap(fn ($alteration) => $this->evaluate($alteration->attributes($slot), $args))
+                    ->all(),
             ];
             if ($slot === 'root') {
                 $data['attributes'] = $data['attributes']->class([$key]);
@@ -113,31 +105,45 @@ class TailorManager
         return $data;
     }
 
-    public function apply(ComponentAttributeBag $bag, $classes)
+    public function apply(ComponentAttributeBag $bag, $default)
     {
-        if (is_object($classes)) {
-            $classes = (string) $classes;
+        if (is_object($default)) {
+            $default = (string) $default;
         }
 
+        $default = Arr::toCssClasses($default);
         $passed = Arr::toCssClasses($bag->get('class'));
 
         if (! $key = Str::match('/__tailor_.*?__/', $passed)) {
-            return $bag->class($classes);
+            return $bag->class($default);
         }
 
-        if (! $result = $this->results[$key] ?? null) {
-            return $bag->class($classes);
+        $bag = $bag->except('class');
+
+        $result = $this->results[$key] ?? null;
+
+        if (! $result) {
+            return $bag->class([
+                ...Arr::wrap($default),
+                ...Arr::wrap(Str::replace($key, '', $passed)),
+            ]);
+        }
+
+        if ($result['reset']) {
+            $default = null;
+        } elseif ($result['replace']) {
+            $default = collect(explode(' ', $default))
+                ->map(fn ($class) => $result['replace'][$class] ?? $class)
+                ->join(' ');
         }
 
         return $bag
-            ->merge([
-                'class' => $this->resolveClasses([
-                    ...Arr::wrap($result['reset'] ? [] : $classes),
-                    ...Arr::wrap($result['classes']),
-                    ...Arr::wrap(Str::replace($key, '', $passed)),
-                ]),
-                ...$result['attributes'] ?? [],
-            ], false);
+            ->class($this->resolveClasses([
+                ...Arr::wrap($result['reset'] ? [] : $default),
+                ...Arr::wrap($result['classes']),
+                ...Arr::wrap(Str::replace($key, '', $passed)),
+            ]))
+            ->merge($result['attributes'] ?? []);
     }
 
     public function inject($string)
@@ -219,6 +225,13 @@ unset(\$__tailor_name);
         }
 
         return $classes;
+    }
+
+    protected function evaluate($value, $args)
+    {
+        return $value instanceof Closure
+            ? app()->call($value->bindTo($this, $this), $args)
+            : $value;
     }
 
     protected function normalizeName($name)

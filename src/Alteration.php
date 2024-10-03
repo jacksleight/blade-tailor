@@ -12,13 +12,15 @@ use Illuminate\Support\Str;
  */
 class Alteration
 {
-    public array $names;
+    protected array $names;
 
-    public array $props = [];
+    protected array $props = [];
 
-    public array $slots = [];
+    protected array $slots = [];
 
-    public bool $reset = false;
+    protected bool $reset = false;
+
+    protected array $replace = [];
 
     public function __construct(array $names)
     {
@@ -36,18 +38,26 @@ class Alteration
         return false;
     }
 
-    public function props(array $props): static
+    public function props(?array $props = null): array|static
     {
-        $this->props = $props;
+        if (func_num_args() > 0) {
+            $this->props = $props;
 
-        return $this;
+            return $this;
+        }
+
+        return $this->props;
     }
 
     public function root(
         string|array|Closure $classes = [],
         array|Closure $attributes = [],
     ) {
-        return $this->slot('root', $classes, $attributes);
+        return $this->slot(
+            'root',
+            $classes,
+            $attributes,
+        );
     }
 
     public function slot(
@@ -63,10 +73,35 @@ class Alteration
         return $this;
     }
 
-    public function reset(boolean $reset): static
+    public function reset(?bool $reset = null): bool|static
     {
-        $this->reset = $reset;
+        if (func_num_args() > 0) {
+            $this->reset = $reset;
 
-        return $this;
+            return $this;
+        }
+
+        return $this->reset;
+    }
+
+    public function replace(?array $replace = null): array|static
+    {
+        if (func_num_args() > 0) {
+            $this->replace = $replace;
+
+            return $this;
+        }
+
+        return $this->replace;
+    }
+
+    public function classes(string $slot)
+    {
+        return $this->slots[$slot]['classes'] ?? [];
+    }
+
+    public function attributes(string $slot)
+    {
+        return $this->slots[$slot]['attributes'] ?? [];
     }
 }
