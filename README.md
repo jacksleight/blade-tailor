@@ -1,6 +1,3 @@
-![Packagist version](https://flat.badgen.net/packagist/v/jacksleight/blade-tailor)
-![License](https://flat.badgen.net/github/license/jacksleight/blade-tailor)
-
 # Blade Tailor
 
 Blade Tailor allows you to customise (tailor) the props, classes and attributes used by blade components from outside the template files. This is particularly useful for theming components from external packages without having to publish them. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
