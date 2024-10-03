@@ -11,29 +11,29 @@ use TailwindMerge\Laravel\Facades\TailwindMerge;
 
 class TailorManager
 {
-    protected $rules = [];
+    protected $alterations = [];
 
-    protected $customs = [];
+    protected $results = [];
 
     public function component($name)
     {
         $name = $this->normalizeName($name);
 
-        if (! isset($this->rules[$name])) {
-            $this->rules[$name] = new Rule($name);
+        if (! isset($this->alterations[$name])) {
+            $this->alterations[$name] = new Alteration($name);
         }
 
-        return $this->rules[$name];
+        return $this->alterations[$name];
     }
 
     public function resolve($data, $props = [])
     {
         $name = $data['__tailor_name'];
 
-        $rule = $this->rules[$name] ?? null;
+        $alteration = $this->alterations[$name] ?? null;
 
-        // Merge custom props into default props
-        $props = array_merge($props, $rule->props ?? []);
+        // Merge result props into default props
+        $props = array_merge($props, $alteration->props ?? []);
 
         // Same logic as Laravel's @props directive
         $data['attributes'] = $data['attributes'] ?? new ComponentAttributeBag;
@@ -50,7 +50,7 @@ class TailorManager
             }
         }
 
-        if (! $rule) {
+        if (! $alteration) {
             return $data;
         }
 
@@ -68,13 +68,13 @@ class TailorManager
         // Collect data to pass to closures
         $pass = Arr::only($data, array_merge(['attributes'], array_keys($props)));
 
-        // Store custom data and persist key in class attribute
+        // Store result data and persist key in class attribute
         foreach ($slots as $slot) {
             $key = '__tailor_'.uniqid().'__';
-            $classes = $rule->classes[$slot] ?? [];
-            $attributes = $rule->attributes[$slot] ?? [];
-            $this->customs[$key] = [
-                'reset' => $rule->reset,
+            $classes = $alteration->classes[$slot] ?? [];
+            $attributes = $alteration->attributes[$slot] ?? [];
+            $this->results[$key] = [
+                'reset' => $alteration->reset,
                 'classes' => $classes instanceof Closure
                     ? app()->call($classes->bindTo($this, $this), $pass)
                     : Arr::wrap($classes),
@@ -104,18 +104,18 @@ class TailorManager
             return $bag->class($classes);
         }
 
-        if (! $custom = $this->customs[$key] ?? null) {
+        if (! $result = $this->results[$key] ?? null) {
             return $bag->class($classes);
         }
 
         return $bag
             ->merge([
                 'class' => $this->resolveClasses([
-                    ...Arr::wrap($custom['reset'] ? [] : $classes),
-                    ...Arr::wrap($custom['classes']),
+                    ...Arr::wrap($result['reset'] ? [] : $classes),
+                    ...Arr::wrap($result['classes']),
                     ...Arr::wrap(Str::replace($key, '', $passed)),
                 ]),
-                ...$custom['attributes'] ?? [],
+                ...$result['attributes'] ?? [],
             ], false);
     }
 
@@ -127,7 +127,7 @@ class TailorManager
 
         $name = $this->lookupName(app('blade.compiler')->getPath());
 
-        if (! isset($this->rules[$name])) {
+        if (! isset($this->alterations[$name])) {
             return $string;
         }
 
@@ -150,7 +150,7 @@ class TailorManager
     {
         $name = $this->resolveName($view->name());
 
-        if (! isset($this->rules[$name])) {
+        if (! isset($this->alterations[$name])) {
             return $view;
         }
 

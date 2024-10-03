@@ -9,7 +9,7 @@ use Closure;
  * be grouped by slot, rather than slots being grouped
  * by classes and attributes.
  */
-class Rule
+class Alteration
 {
     public string $name;
 
