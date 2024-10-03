@@ -16,9 +16,7 @@ class Alteration
 
     public array $props = [];
 
-    public array $classes = [];
-
-    public array $attributes = [];
+    public array $slots = [];
 
     public bool $reset = false;
 
@@ -57,8 +55,10 @@ class Alteration
         string|array|Closure $classes = [],
         array|Closure $attributes = [],
     ): static {
-        $this->classes[$name] = $classes;
-        $this->attributes[$name] = $attributes;
+        $this->slots[$name] = [
+            'classes' => $classes,
+            'attributes' => $attributes,
+        ];
 
         return $this;
     }

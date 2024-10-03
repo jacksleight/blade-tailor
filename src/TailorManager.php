@@ -4,6 +4,7 @@ namespace JackSleight\BladeTailor;
 
 use Closure;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\View\ComponentAttributeBag;
 use Illuminate\View\ComponentSlot;
@@ -26,24 +27,20 @@ class TailorManager
         return $alteration;
     }
 
-    public function alterations(string $name): array
+    public function alterations(?string $name): Collection
     {
         return collect($this->alterations)
-            ->filter(fn ($alteration) => $alteration->matches($name))
-            ->values()
-            ->all();
+            ->filter(fn ($alteration) => $alteration->matches($name));
     }
 
     public function resolve($data, $props = [])
     {
         $name = $data['__tailor_name'];
 
-        dump([$name, $this->alterations($name)]);
-
-        $alteration = $this->alterations($name)[0] ?? null;
+        $alterations = $this->alterations($name);
 
         // Merge result props into default props
-        $props = array_merge($props, $alteration->props ?? []);
+        $props = array_merge($props, ...$alterations->pluck('props')->all());
 
         // Same logic as Laravel's @props directive
         $data['attributes'] = $data['attributes'] ?? new ComponentAttributeBag;
@@ -60,7 +57,7 @@ class TailorManager
             }
         }
 
-        if (! $alteration) {
+        if ($alterations->isEmpty()) {
             return $data;
         }
 
@@ -78,19 +75,33 @@ class TailorManager
         // Collect data to pass to closures
         $pass = Arr::only($data, array_merge(['attributes'], array_keys($props)));
 
-        // Store result data and persist key in class attribute
+        // Merge and store alterations and persist key in class attribute
         foreach ($slots as $slot) {
             $key = '__tailor_'.uniqid().'__';
-            $classes = $alteration->classes[$slot] ?? [];
-            $attributes = $alteration->attributes[$slot] ?? [];
+            $reset = $alterations
+                ->contains(fn ($alteration) => $alteration->reset);
+            $classes = array_merge(...$alterations
+                ->map(function ($alteration) use ($slot, $pass) {
+                    $classes = $alteration->slots[$slot]['classes'];
+
+                    return Arr::wrap($classes instanceof Closure
+                        ? app()->call($classes->bindTo($this, $this), $pass)
+                        : $classes);
+                })
+                ->all());
+            $attributes = array_merge(...$alterations
+                ->map(function ($alteration) use ($slot, $pass) {
+                    $attributes = $alteration->slots[$slot]['attributes'];
+
+                    return $attributes instanceof Closure
+                        ? app()->call($attributes->bindTo($this, $this), $pass)
+                        : $attributes;
+                })
+                ->all());
             $this->results[$key] = [
-                'reset' => $alteration->reset,
-                'classes' => $classes instanceof Closure
-                    ? app()->call($classes->bindTo($this, $this), $pass)
-                    : Arr::wrap($classes),
-                'attributes' => $attributes instanceof Closure
-                    ? app()->call($attributes->bindTo($this, $this), $pass)
-                    : Arr::wrap($attributes),
+                'reset' => $reset,
+                'classes' => $classes,
+                'attributes' => $attributes,
             ];
             if ($slot === 'root') {
                 $data['attributes'] = $data['attributes']->class([$key]);
@@ -137,7 +148,7 @@ class TailorManager
 
         $name = $this->lookupName(app('blade.compiler')->getPath());
 
-        if (! $name || ! $this->alterations($name)) {
+        if ($this->alterations($name)->isEmpty()) {
             return $string;
         }
 
@@ -160,7 +171,7 @@ class TailorManager
     {
         $name = $this->resolveName($view->name());
 
-        if (! $name || ! $this->alterations($name)) {
+        if ($this->alterations($name)->isEmpty()) {
             return $view;
         }
 

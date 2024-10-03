@@ -17,7 +17,7 @@ composer require jacksleight/blade-tailor
 
 ### Tailoring Components
 
-Tailoring components is done via the `Tailor::component()` method. You can either make these calls in a service provider or create a dedicated file for your customisations in `resources/tailor.php` (this will be loaded automatically). Whenever you add a rule for a brand new component you need to run `php artisan view:clear`, as the template will need to be recompiled. Further changes will not require recompiling.
+Tailoring components is done via the `Tailor::component()` method. You can either make these calls in a service provider or create a dedicated file for your customisations in `resources/tailor.php` (this will be loaded automatically). Whenever you add an alteration for a brand new component you need to run `php artisan view:clear`, as the template will need to be recompiled. Further changes will not require recompiling.
 
 ```php
 use JackSleight\BladeTailor\Tailor;
@@ -51,7 +51,7 @@ Tailor::component('flux::button')
     ->reset(true); // Remove all built-in styles 
 ```
 
-You'll need to add any files where you're defining tailoring rules to your Tailwind config's `content` array to ensure the compiler picks up the new classes:
+You'll need to add any files where you're defining alterations to your Tailwind config's `content` array to ensure the compiler picks up the new classes:
 
 ```js
 content: [
