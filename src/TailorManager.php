@@ -3,7 +3,6 @@
 namespace JackSleight\BladeTailor;
 
 use Closure;
-use Flux\ClassBuilder as FluxClassBuilder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\View\ComponentAttributeBag;
@@ -95,7 +94,7 @@ class TailorManager
 
     public function apply(ComponentAttributeBag $bag, $classes)
     {
-        if ($classes instanceof FluxClassBuilder) {
+        if (is_object($classes)) {
             $classes = (string) $classes;
         }
 
