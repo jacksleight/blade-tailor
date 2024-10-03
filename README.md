@@ -77,7 +77,7 @@ If you have a library of your own re-usable components you can make them tailora
 </div>
 ```
 
-Technicailly this isn't really necessary, as the package will attempt to make these changes itself if it detects a tailored component, however doing it explicitly is more robust.
+Technicailly this isn't really necessary, as the package will attempt to make these changes itself if it detects a tailored component, however doing it explicitly is probably better.
 
 ### Using Tailwind Merge
 
