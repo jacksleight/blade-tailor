@@ -3,6 +3,7 @@
 namespace JackSleight\BladeTailor;
 
 use Closure;
+use Illuminate\Support\Str;
 
 /**
  * @todo Refactor this, classes and attributes should
@@ -11,7 +12,7 @@ use Closure;
  */
 class Alteration
 {
-    public string $name;
+    public array $names;
 
     public array $props = [];
 
@@ -21,9 +22,20 @@ class Alteration
 
     public bool $reset = false;
 
-    public function __construct(string $name)
+    public function __construct(array $names)
     {
-        $this->name = $name;
+        $this->names = $names;
+    }
+
+    public function matches($name)
+    {
+        foreach ($this->names as $pattern) {
+            if (Str::is($pattern, $name)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function props(array $props): static

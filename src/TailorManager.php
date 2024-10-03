@@ -15,22 +15,32 @@ class TailorManager
 
     protected $results = [];
 
-    public function component($name)
+    public function component(string|array $names): Alteration
     {
-        $name = $this->normalizeName($name);
+        $names = collect($names)
+            ->map(fn ($name) => $this->normalizeName($name))
+            ->all();
 
-        if (! isset($this->alterations[$name])) {
-            $this->alterations[$name] = new Alteration($name);
-        }
+        $this->alterations[] = $alteration = new Alteration($names);
 
-        return $this->alterations[$name];
+        return $alteration;
+    }
+
+    public function alterations(string $name): array
+    {
+        return collect($this->alterations)
+            ->filter(fn ($alteration) => $alteration->matches($name))
+            ->values()
+            ->all();
     }
 
     public function resolve($data, $props = [])
     {
         $name = $data['__tailor_name'];
 
-        $alteration = $this->alterations[$name] ?? null;
+        dump([$name, $this->alterations($name)]);
+
+        $alteration = $this->alterations($name)[0] ?? null;
 
         // Merge result props into default props
         $props = array_merge($props, $alteration->props ?? []);
@@ -127,7 +137,7 @@ class TailorManager
 
         $name = $this->lookupName(app('blade.compiler')->getPath());
 
-        if (! isset($this->alterations[$name])) {
+        if (! $name || ! $this->alterations($name)) {
             return $string;
         }
 
@@ -150,7 +160,7 @@ class TailorManager
     {
         $name = $this->resolveName($view->name());
 
-        if (! isset($this->alterations[$name])) {
+        if (! $name || ! $this->alterations($name)) {
             return $view;
         }
 
