@@ -63,8 +63,6 @@ content: [
 ],
 ```
 
-There's also a `reset()` method that allows you to remove all built-in classes, just in case you really really want to style the whole thing from scratch (but still keep all the behaviour).
-
 ### Making Components Tailorable
 
 If you have a library of your own re-usable components you can make them tailorable by replacing the `@props` directive with `@tailor` and the `$attributes->class(...)` call with `$attributes->tailor(...)`.
