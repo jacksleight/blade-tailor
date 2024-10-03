@@ -113,20 +113,18 @@ class TailorManager
 
         $default = Arr::toCssClasses($default);
         $passed = Arr::toCssClasses($bag->get('class'));
-
-        if (! $key = Str::match('/__tailor_.*?__/', $passed)) {
-            return $bag->class($default);
-        }
-
         $bag = $bag->except('class');
 
+        if (! $key = Str::match('/__tailor_.*?__/', $passed)) {
+            return $bag->class([$default, $passed]);
+        }
+
         $result = $this->results[$key] ?? null;
+        
+        $passed = Str::replace($key, '', $passed);
 
         if (! $result) {
-            return $bag->class([
-                ...Arr::wrap($default),
-                ...Arr::wrap(Str::replace($key, '', $passed)),
-            ]);
+            return $bag->class([$default, $passed]);
         }
 
         if ($result['reset']) {
@@ -139,9 +137,9 @@ class TailorManager
 
         return $bag
             ->class($this->resolveClasses([
-                ...Arr::wrap($result['reset'] ? [] : $default),
-                ...Arr::wrap($result['classes']),
-                ...Arr::wrap(Str::replace($key, '', $passed)),
+                $default,
+                ...$result['classes'],
+                $passed,
             ]))
             ->merge($result['attributes'] ?? []);
     }
