@@ -41,7 +41,8 @@ Tailor::component('flux::button')
         'data-thing' => 'foo',
     ]);
 
-Tailor::component(['flux::button', 'core::*']) // Target multiple components
+// Target multiple components
+Tailor::component(['flux::button', 'core::*'])
     ->replace([ // Replace default classes
         'text-sm' => 'text-base',
     ])
