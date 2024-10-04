@@ -41,7 +41,7 @@ class TailorManager
 
         // Merge result props into default props
         $props = $alterations
-            ->map(fn ($alteration) => $alteration->props())
+            ->map(fn ($alteration) => $alteration->props)
             ->unshift($props)
             ->flatMap(fn ($props) => $props)
             ->all();
@@ -83,16 +83,21 @@ class TailorManager
         foreach ($slots as $slot) {
             $key = '__tailor_'.uniqid().'__';
             $this->results[$key] = [
-                'reset' => $alterations
-                    ->contains(fn ($alteration) => $alteration->reset()),
                 'replace' => $alterations
-                    ->flatMap(fn ($alteration) => $alteration->replace())
+                    ->flatMap(fn ($alteration) => $alteration->replace)
                     ->all(),
+                'remove' => $alterations
+                    ->flatMap(fn ($alteration) => $alteration->remove)
+                    ->all(),
+                'reset' => $alterations
+                    ->contains(fn ($alteration) => $alteration->reset),
                 'classes' => $alterations
-                    ->flatMap(fn ($alteration) => Arr::wrap($this->evaluate($alteration->classes($slot), $args)))
+                    ->flatMap(fn ($alteration) => Arr::wrap($this
+                        ->evaluate($alteration->slots[$slot]['classes'] ?? [], $args)))
                     ->all(),
                 'attributes' => $alterations
-                    ->flatMap(fn ($alteration) => $this->evaluate($alteration->attributes($slot), $args))
+                    ->flatMap(fn ($alteration) => $this
+                        ->evaluate($alteration->slots[$slot]['attributes'] ?? [], $args))
                     ->all(),
             ];
             if ($slot === 'root') {
@@ -120,7 +125,7 @@ class TailorManager
         }
 
         $result = $this->results[$key] ?? null;
-        
+
         $passed = Str::replace($key, '', $passed);
 
         if (! $result) {
@@ -129,8 +134,9 @@ class TailorManager
 
         if ($result['reset']) {
             $default = null;
-        } elseif ($result['replace']) {
+        } elseif ($result['replace'] || $result['remove']) {
             $default = collect(explode(' ', $default))
+                ->reject(fn ($class) => in_array($class, $result['remove']))
                 ->map(fn ($class) => $result['replace'][$class] ?? $class)
                 ->join(' ');
         }

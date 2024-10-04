@@ -12,22 +12,24 @@ use Illuminate\Support\Str;
  */
 class Alteration
 {
-    protected array $names;
+    public array $names;
 
-    protected array $props = [];
+    public array $props = [];
 
-    protected array $slots = [];
+    public array $slots = [];
 
-    protected bool $reset = false;
+    public array $replace = [];
 
-    protected array $replace = [];
+    public array $remove = [];
+
+    public bool $reset = false;
 
     public function __construct(array $names)
     {
         $this->names = $names;
     }
 
-    public function matches($name)
+    public function matches($name): bool
     {
         foreach ($this->names as $pattern) {
             if (Str::is($pattern, $name)) {
@@ -38,26 +40,37 @@ class Alteration
         return false;
     }
 
-    public function props(?array $props = null): array|static
+    public function props(?array $props): static
     {
-        if (func_num_args() > 0) {
-            $this->props = $props;
+        $this->props = $props;
 
-            return $this;
-        }
+        return $this;
+    }
 
-        return $this->props;
+    public function classes(string|array|Closure $classes): static
+    {
+        $this->slots['root']['classes'] = $classes;
+
+        return $this;
+    }
+
+    public function attributes(array|Closure $attributes): static
+    {
+        $this->slots['root']['attributes'] = $attributes;
+
+        return $this;
     }
 
     public function root(
         string|array|Closure $classes = [],
         array|Closure $attributes = [],
-    ) {
-        return $this->slot(
-            'root',
-            $classes,
-            $attributes,
-        );
+    ): static {
+        $this->slots['root'] = [
+            'classes' => $classes,
+            'attributes' => $attributes,
+        ];
+
+        return $this;
     }
 
     public function slot(
@@ -73,35 +86,24 @@ class Alteration
         return $this;
     }
 
-    public function reset(?bool $reset = null): bool|static
+    public function replace(?array $replace): static
     {
-        if (func_num_args() > 0) {
-            $this->reset = $reset;
+        $this->replace = $replace;
 
-            return $this;
-        }
-
-        return $this->reset;
+        return $this;
     }
 
-    public function replace(?array $replace = null): array|static
+    public function remove(?array $remove): static
     {
-        if (func_num_args() > 0) {
-            $this->replace = $replace;
+        $this->remove = $remove;
 
-            return $this;
-        }
-
-        return $this->replace;
+        return $this;
     }
 
-    public function classes(string $slot)
+    public function reset(?bool $reset): static
     {
-        return $this->slots[$slot]['classes'] ?? [];
-    }
+        $this->reset = $reset;
 
-    public function attributes(string $slot)
-    {
-        return $this->slots[$slot]['attributes'] ?? [];
+        return $this;
     }
 }

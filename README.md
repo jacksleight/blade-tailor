@@ -27,28 +27,40 @@ Tailor::component('flux::button')
         'variant' => 'primary', // Customise prop defaults
         'huge' => false, // Add new props
     ])
-    ->root( // Customise root element
-        classes: fn ($variant, $huge) => [
-            'border-4 rounded-full -rotate-2 !shadow-drop-1g',
-            'scale-150' => $huge,
-            '[&>[data-flux-icon]]:: text-orange-500 size-10 -mx-2 mb-0.5 self-end',
-            match ($variant) {
-                'primary' => 'border-blue-300',
-                'danger' => 'border-red-800',
-                default => '',
-            },
-        ],
-        attributes: [ // Add new attributes
-            'data-thing' => config('thing.enabled'),
-        ]
+    ->classes(fn ($variant, $huge) => [
+        'border-4 rounded-full -rotate-2 !shadow-drop-1g',
+        'scale-150' => $huge,
+        '[&>[data-flux-icon]]:: text-orange-500 size-10 -mx-2 mb-0.5 self-end',
+        match ($variant) {
+            'primary' => 'border-blue-300',
+            'danger' => 'border-red-800',
+            default => '',
+        },
+    ]),
+    ->attributes([ // Add new attributes
+        'data-thing' => 'foo',
+    ]);
+
+Tailor::component(['flux::button', 'core::*']) // Target multiple components
+    ->replace([ // Replace default classes
+        'text-sm' => 'text-base',
+    ])
+    ->remove([ // Remove default classes
+        'rounded',
+    ])
+    ->reset(true); // Remove all default classes
+
+Tailor::component('core::card')
+    ->root( // Customise root and slot elements
+        classes: 'rounded-2xl',
+        attributes: ['data-thing' => 'bar'],
     )
-    ->slot( // Customise slot elements
-        name: 'item',
-        classes: [
-            'text-red-500',
-        ]
+    ->slot('image',
+        classes: 'rounded',
     )
-    ->reset(true); // Remove all default styles
+    ->slot('text',
+        classes: 'p-4',
+    );
 ```
 
 You'll need to add any files where you're defining alterations to your Tailwind config's `content` array to ensure the compiler picks up the new classes:
@@ -88,19 +100,20 @@ The tailor method supports a custom shorthand for specifying Tailwind variant cl
 'hover:: text-orange-500 underline' -> 'hover:text-orange-500 hover:underline'
 ```
 
-To make this work with the Tailwind compiler you'll need to add a custom extract method for PHP files to your Tailwind config:
+To make this work with the Tailwind compiler you'll need to add a custom extract method for PHP files to your Tailwind config, which you can import from this package:
 
 ```js
-content: {
-    files: [
-        // ...
-    ],
-    extract: {
-        php: (content) => [
-            ...content.match(/[^"'`\s]*/g),
-            ...Array.from(content.matchAll(/'([^\s]+)\:\:\s(.*?)'/g))
-                .map((match) => match[2].split(/\s+/).map(name => `${match[1]}:${name}`))
-                .flat(),
+import { variantExtract } from './vendor/jacksleight/blade-tailor/tailwind.helpers.js';
+
+export default {
+    content: {
+        files: [
+            // ...
         ],
+        extract: {
+            php: variantExtract,
+        },
     },
-},
+    // ...
+}
+```
