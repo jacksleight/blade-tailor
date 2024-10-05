@@ -1,6 +1,6 @@
 # Blade Tailor
 
-Blade Tailor allows you to customise (tailor) the default props, classes and attributes used by blade components without having to publish them. This is particularly useful for theming components from external packages. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
+Blade Tailor allows you to customise (tailor) the default props, classes and attributes used by blade components without publishing their templates. This is particularly useful for theming components from external packages. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
 
 > [!WARNING] 
 > This package needs to alter external component templates during compilation in order to hook into their rendering processes. [The changes it makes](https://github.com/jacksleight/blade-tailor/blob/815a1dd08602556bbdc3293041d16690b0038a12/src/TailorManager.php#L161-L171) are very minor and limited to the components you're tailoring, but there may be edge cases that result in unexpected behaviour.
