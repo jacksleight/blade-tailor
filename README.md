@@ -64,6 +64,8 @@ Tailor::component('core::card')
     );
 ```
 
+The remove, replace and reset options are not slot specific, they will apply to all slots.
+
 You'll need to add any files where you're defining alterations to your Tailwind config's `content` array to ensure the compiler picks up the new classes:
 
 ```js
