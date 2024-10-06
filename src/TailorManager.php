@@ -83,6 +83,7 @@ class TailorManager
         foreach ($slots as $slot) {
             $key = '__tailor_'.uniqid().'__';
             $this->results[$key] = [
+                'name' => $name,
                 'replace' => $alterations
                     ->flatMap(fn ($alteration) => $alteration->replace)
                     ->all(),
@@ -144,8 +145,8 @@ class TailorManager
         return $bag
             ->class($this->resolveClasses([
                 $default,
-                ...$result['classes'],
                 $passed,
+                ...$result['classes'],
             ]))
             ->merge($result['attributes'] ?? []);
     }
