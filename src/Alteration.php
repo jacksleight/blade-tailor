@@ -86,6 +86,20 @@ class Alteration
         return $this;
     }
 
+    public function tag(
+        $name,
+        string|array|Closure $classes = [],
+        array|Closure $attributes = [],
+    ): static {
+        $name = '__tailor_tag_'.Str::replace('#', '_', $name);
+        $this->slots[$name] = [
+            'classes' => $classes,
+            'attributes' => $attributes,
+        ];
+
+        return $this;
+    }
+
     public function replace(?array $replace): static
     {
         $this->replace = $replace;
