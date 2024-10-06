@@ -65,14 +65,14 @@ class TailorManager
             return $data;
         }
 
-        // Find slot definitions and hydrate strings into instances
-        $slots = ['root'];
-        foreach ($props as $key => $value) {
-            if ($value instanceof ComponentSlot) {
-                $slots[] = $key;
-                if (! $data[$key] instanceof ComponentSlot) {
-                    $data[$key] = new ComponentSlot(null, ['name' => $data[$key]]);
-                }
+        // Find slot definitions and convert values to slot instances
+        $slots = $alterations
+            ->map(fn ($alteration) => array_keys($alteration->slots))
+            ->flatten()
+            ->all();
+        foreach ($slots as $slot) {
+            if ($slot !== 'root' && ! $data[$slot] instanceof ComponentSlot) {
+                $data[$slot] = new ComponentSlot($data[$slot]);
             }
         }
 
