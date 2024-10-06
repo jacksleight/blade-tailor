@@ -27,17 +27,17 @@ class TailorManager
         return $alteration;
     }
 
-    public function alterations(?string $name): Collection
+    public function alterations(?string $name, ?array $parents = null): Collection
     {
         return collect($this->alterations)
-            ->filter(fn ($alteration) => $alteration->matches($name));
+            ->filter(fn ($alteration) => $alteration->matches($name, $parents));
     }
 
     public function resolve($data, $props = [])
     {
         $name = $data['__tailor_name'] ?? null;
 
-        $alterations = $this->alterations($name);
+        $alterations = $this->alterations($name, view()->tailorParents());
 
         // Merge result props into default props
         $props = $alterations
@@ -292,7 +292,7 @@ unset(\$__tailor_name);
         return Str::replace(':', '::', $name);
     }
 
-    protected function resolveName($name)
+    public function resolveName($name)
     {
         if (! Str::contains($name, '::')) {
             return;

@@ -5,14 +5,11 @@ namespace JackSleight\BladeTailor;
 use Closure;
 use Illuminate\Support\Str;
 
-/**
- * @todo Refactor this, classes and attributes should
- * be grouped by slot, rather than slots being grouped
- * by classes and attributes.
- */
 class Alteration
 {
     public array $names;
+
+    public ?string $parent = null;
 
     public array $props = [];
 
@@ -29,18 +26,29 @@ class Alteration
         $this->names = $names;
     }
 
-    public function matches($name): bool
+    public function matches(?string $name, ?array $parents = null): bool
     {
-        foreach ($this->names as $pattern) {
-            if (Str::is($pattern, $name)) {
-                return true;
-            }
+        $match = collect($this->names)
+            ->contains(fn ($pattern) => Str::is($pattern, $name));
+        if (! $match) {
+            return false;
         }
 
-        return false;
+        if ($this->parent && $parents && ! in_array($this->parent, $parents)) {
+            return false;
+        }
+
+        return true;
     }
 
-    public function props(?array $props): static
+    public function parent(string $parent): static
+    {
+        $this->parent = $parent;
+
+        return $this;
+    }
+
+    public function props(array $props): static
     {
         $this->props = $props;
 
@@ -89,12 +97,10 @@ class Alteration
     public function tag(
         $name,
         string|array|Closure $classes = [],
-        array|Closure $attributes = [],
     ): static {
         $name = '__tailor_tag_'.Str::replace('#', '_', $name);
         $this->slots[$name] = [
             'classes' => $classes,
-            'attributes' => $attributes,
         ];
 
         return $this;
