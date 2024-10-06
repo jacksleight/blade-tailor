@@ -111,6 +111,18 @@ class TailorManager
         return $data;
     }
 
+    public function extract(ComponentAttributeBag $bag)
+    {
+        $passed = Arr::toCssClasses($bag->get('class'));
+        if (! $key = Str::match('/__tailor_.*?__/', $passed)) {
+            return;
+        }
+
+        $bag['class'] = Str::replace($key, '', $passed);
+
+        return $key;
+    }
+
     public function apply(ComponentAttributeBag $bag, $default)
     {
         if (is_object($default)) {
@@ -121,12 +133,13 @@ class TailorManager
         $passed = Arr::toCssClasses($bag->get('class'));
         $bag = $bag->except('class');
 
-        if (! $key = Str::match('/__tailor_.*?__/', $passed)) {
+        if (! $key = Str::match('/__tailor_.*?__/', $default.$passed)) {
             return $bag->class([$default, $passed]);
         }
 
         $result = $this->results[$key] ?? null;
 
+        $default = Str::replace($key, '', $default);
         $passed = Str::replace($key, '', $passed);
 
         if (! $result) {
@@ -172,6 +185,12 @@ class TailorManager
         $string = Str::replaceMatches(
             '/(attributes(->\w+\(.*\))*->)class\(/i',
             '$1tailor(',
+            $string,
+        );
+
+        $string = Str::replace(
+            'Flux::classes()',
+            'Flux::classes()->add($attributes->tailorKey())',
             $string,
         );
 

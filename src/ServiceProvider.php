@@ -31,6 +31,9 @@ class ServiceProvider extends BaseServiceProvider
         ComponentAttributeBag::macro('tailor', function ($classes) {
             return Tailor::apply($this, $classes);
         });
+        ComponentAttributeBag::macro('tailorKey', function () {
+            return Tailor::extract($this);
+        });
 
         if (file_exists($file = resource_path('tailor.php'))) {
             require_once $file;
