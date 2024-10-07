@@ -194,6 +194,8 @@ class TailorManager
             );
         }
 
+        // Allow hooking into plain HTML tags with hard coded classes
+        // I don't like this, ideally it wouldn't be necessary, very experimental
         $tags = [];
         $string = Str::replaceMatches(
             '/<((?!x-)[a-z-]+)(\s[^>]*?class=")((?!\{)[^"]+(?!\{))("[^>]*)>/i',
