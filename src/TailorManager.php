@@ -37,9 +37,9 @@ class TailorManager
     {
         $name = $data['__tailor_name'] ?? null;
 
-        $alterations = $this->alterations($name, view()->tailorParents());
+        $alterations = $this->alterations($name, view()->tailorInfo()['parents']);
 
-        // Merge result props into default props
+        // Merge alteration props into default props
         $props = $alterations
             ->map(fn ($alteration) => $alteration->props)
             ->unshift($props)
@@ -61,18 +61,17 @@ class TailorManager
             }
         }
 
+        // If there are no alterations return data as is
         if ($alterations->isEmpty()) {
             return $data;
         }
 
-        // Find slot definitions and convert values to slot instances
-        $slots = $alterations
-            ->flatMap(fn ($alteration) => array_keys($alteration->slots))
-            ->all();
-        foreach ($slots as $slot) {
-            $value = $data[$slot] ?? null;
-            if ($slot !== 'root' && ! $value instanceof ComponentSlot) {
-                $data[$slot] = new ComponentSlot($value);
+        // Find attribute bags and convert them to custom instances
+        foreach ($data as $key => $value) {
+            if ($value instanceof ComponentAttributeBag) {
+                $data[$key] = new View\ComponentAttributeBag($value->all());
+            } elseif ($value instanceof ComponentSlot) {
+                $data[$key]->attributes = new View\ComponentAttributeBag($value->attributes->all());
             }
         }
 
@@ -80,9 +79,15 @@ class TailorManager
         $args = Arr::only($data, array_merge(['attributes'], array_keys($props)));
 
         // Merge and store alterations and persist key in class attribute
+        $bags = [];
+        $slots = $alterations
+            ->flatMap(fn ($alteration) => array_keys($alteration->slots))
+            ->all();
         foreach ($slots as $slot) {
-            $key = '__tailor_key_'.uniqid().'__';
-            $this->results[$key] = [
+            $bag = $slot === 'root'
+                ? $data['attributes']
+                : ($data[$slot] ?? null)?->attributes;
+            $result = [
                 'name' => $name,
                 'replace' => $alterations
                     ->flatMap(fn ($alteration) => $alteration->replace)
@@ -101,40 +106,38 @@ class TailorManager
                         ->evaluate($alteration->slots[$slot]['attributes'] ?? [], $args))
                     ->all(),
             ];
-            if ($slot === 'root') {
-                $data['attributes'] = $data['attributes']->class([$key]);
-            } else {
-                $data[$slot]->attributes = $data[$slot]->attributes->class([$key]);
+            $key = '__tailor_key_'.uniqid().'__';
+            $this->results[$key] = $result;
+            if (! $bag) {
+                $bag = new View\ComponentAttributeBag;
+                $bags[$slot] = $bag;
             }
+            $bag->tailorKeyInject($key);
         }
+
+        $data['__tailor'] = function ($id, $default) use ($bags) {
+            if (! $bag = $bags[$id] ?? null) {
+                return $default.' '.$id;
+            }
+
+            return $bag->class($default)['class'];
+        };
 
         return $data;
     }
 
-    public function extract(ComponentAttributeBag $bag)
-    {
-        $passed = Arr::toCssClasses($bag->get('class'));
-        if (! $key = Str::match('/__tailor_key_.*?__/', $passed)) {
-            return;
-        }
-
-        $bag['class'] = Str::replace($key, '', $passed);
-
-        return $key;
-    }
-
-    public function apply(ComponentAttributeBag $bag, $default)
+    public function apply(View\ComponentAttributeBag $bag, $default)
     {
         if (is_object($default)) {
             $default = (string) $default;
         }
 
         $default = Arr::toCssClasses($default);
-        $passed = Arr::toCssClasses($bag->get('class'));
+        $passed = Arr::toCssClasses($bag['class']);
         $bag = $bag->except('class');
 
         if (! $key = Str::match('/__tailor_key_.*?__/', $default.$passed)) {
-            return $bag->class([$default, $passed]);
+            return $bag->tailorClass([$default, $passed]);
         }
 
         $result = $this->results[$key] ?? null;
@@ -143,7 +146,7 @@ class TailorManager
         $passed = Str::replace($key, '', $passed);
 
         if (! $result) {
-            return $bag->class([$default, $passed]);
+            return $bag->tailorClass([$default, $passed]);
         }
 
         if ($result['reset']) {
@@ -156,7 +159,7 @@ class TailorManager
         }
 
         return $bag
-            ->class($this->resolveClasses([
+            ->tailorClass($this->resolveClasses([
                 $default,
                 $passed,
                 ...$result['classes'],
@@ -173,10 +176,6 @@ class TailorManager
         $name = $this->lookupName(app('blade.compiler')->getPath());
 
         $alterations = $this->alterations($name);
-        $slots = $alterations
-            ->flatMap(fn ($alteration) => array_keys($alteration->slots))
-            ->all();
-
         if ($alterations->isEmpty()) {
             return $string;
         }
@@ -187,34 +186,24 @@ class TailorManager
             $string = "@tailor\n".$string;
         }
 
-        $string = Str::replaceMatches(
-            '/(attributes(->\w+\(.*\))*->)class\(/i',
-            '$1tailor(',
-            $string,
-        );
-
-        $string = Str::replace(
-            'Flux::classes()',
-            'Flux::classes()->add($attributes->tailorKey())',
-            $string,
-        );
+        if (Str::contains($string, 'Flux::classes()')) {
+            $string = Str::replace(
+                '$classes = Flux::classes()',
+                '$classes = Flux::classes()->add($attributes->tailorKeyExtract())',
+                $string,
+            );
+        }
 
         $tags = [];
-        $string = preg_replace_callback(
-            '/<([a-z0-9:]+)(\s[^>]*?)(:?class="([^"]*?)")([^>]*?)>/i',
-            function ($match) use (&$tags, $slots) {
-                [$raw, $tag, $before, $attr, $value, $after] = $match;
+        $string = Str::replaceMatches(
+            '/<((?!x-)[a-z-]+)(\s[^>]*?class=")((?!\{)[^"]+(?!\{))("[^>]*)>/i',
+            function ($match) use (&$tags) {
+                [$match, $tag, $before, $value, $after] = $match;
                 $tags[$tag] = $tags[$tag] ?? 1;
-                $slot = '__tailor_tag_'.$tag.'_'.$tags[$tag]++;
-                if (! in_array($slot, $slots)) {
-                    return $raw;
-                }
-                if (Str::contains($tag, ':') || Str::startsWith($tag, 'x-') || Str::contains($value, ['{{', '{!!'])) {
-                    return $raw;
-                }
-                $string = '{{ ($'.$slot.' ?? new \Illuminate\View\ComponentSlot)->attributes->tailor(\''.$value.' '.$slot.'\') }}';
+                $id = '__tailor_tag_'.$tag.'_'.$tags[$tag]++;
+                $call = '{{ $__tailor("'.$id.'", "'.$value.'") }}';
 
-                return "<{$tag}{$before}{$string}{$after}>";
+                return "<{$tag}{$before}{$call}{$after}>";
             },
             $string,
         );

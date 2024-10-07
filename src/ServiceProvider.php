@@ -2,11 +2,9 @@
 
 namespace JackSleight\BladeTailor;
 
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
-use Illuminate\View\ComponentAttributeBag;
 use Illuminate\View\Factory;
 
 class ServiceProvider extends BaseServiceProvider
@@ -30,15 +28,12 @@ class ServiceProvider extends BaseServiceProvider
             return Tailor::compile($expression);
         });
 
-        ComponentAttributeBag::macro('tailor', function ($classes) {
-            return Tailor::apply($this, $classes);
-        });
-        ComponentAttributeBag::macro('tailorKey', function () {
-            return Tailor::extract($this);
-        });
-
-        Factory::macro('tailorParents', function () {
-            return Arr::map($this->componentStack, fn ($name) => Tailor::resolveName($name));
+        Factory::macro('tailorInfo', function () {
+            return [
+                'parents' => collect($this->componentStack)
+                    ->map(fn ($name) => Tailor::resolveName($name))
+                    ->all(),
+            ];
         });
 
         if (file_exists($file = resource_path('tailor.php'))) {
