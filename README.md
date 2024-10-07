@@ -1,6 +1,6 @@
 # Blade Tailor
 
-Blade Tailor allows you to customise (tailor) the default props, classes and attributes used by blade components without publishing their templates. This is particularly useful for theming components from external packages. If you have a library of your own re-usable components you can also make those tailorable by using the provided directive and attribute method.
+Blade Tailor allows you to customise (tailor) the default props, classes and attributes used by blade components without publishing their templates. This is particularly useful for theming components from external packages. If you have a library of your own re-usable components you can also make those tailorable by using the tailor directive.
 
 > [!WARNING] 
 > This package needs to make some minor changes to external component templates during compilation, in order to hook into their rendering processes. These are limited to the components you're tailoring but there may be edge cases that result in unexpected behaviour.
@@ -77,14 +77,14 @@ content: [
 
 ### Making Components Tailorable
 
-If you have a library of your own re-usable components you can make them tailorable by replacing the `@props` directive with `@tailor` and the `$attributes->class(...)` call with `$attributes->tailor(...)`.
+If you have a library of your own re-usable components you can make them tailorable by replacing the `@props` directive with `@tailor`.
 
 ```blade
 @tailor([
     'type' => 'info',
     'message',
 ])
-<div {{ $attributes->tailor('text-blue-500') }}>
+<div {{ $attributes->class('text-blue-500') }}>
     {{ $message }}
 </div>
 ```
