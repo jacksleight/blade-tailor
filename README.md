@@ -13,6 +13,14 @@ Run the following command from your project root:
 composer require jacksleight/blade-tailor
 ```
 
+If you need to customise the config you can publish it with:
+
+```bash
+php artisan vendor:publish --tag="tailor-config"
+```
+
+In order to customise components from external packages you will need to enable the `tailor.intercept` option.
+
 ## Usage
 
 ### Tailoring Components
@@ -88,8 +96,6 @@ If you have a library of your own re-usable components you can make them tailora
     {{ $message }}
 </div>
 ```
-
-Technicailly this isn't really necessary, as the package will attempt to make this change itself if it detects a tailored component, however doing it explicitly ensures you have full control over the change.
 
 ### Using Tailwind Merge
 
