@@ -196,19 +196,19 @@ class TailorManager
 
         // Allow hooking into plain HTML tags with hard coded classes
         // I don't like this, ideally it wouldn't be necessary, very experimental
-        $tags = [];
-        $string = Str::replaceMatches(
-            '/<((?!x-)[a-z-]+)(\s[^>]*?class=")((?!\{)[^"]+(?!\{))("[^>]*)>/i',
-            function ($match) use (&$tags) {
-                [$match, $tag, $before, $value, $after] = $match;
-                $tags[$tag] = $tags[$tag] ?? 1;
-                $id = '__tailor_tag_'.$tag.'_'.$tags[$tag]++;
-                $call = '{{ $__tailor("'.$id.'", "'.$value.'") }}';
+        // $tags = [];
+        // $string = Str::replaceMatches(
+        //     '/<((?!x-)[a-z-]+)(\s[^>]*?class=")((?!\{)[^"]+(?!\{))("[^>]*)>/i',
+        //     function ($match) use (&$tags) {
+        //         [$match, $tag, $before, $value, $after] = $match;
+        //         $tags[$tag] = $tags[$tag] ?? 1;
+        //         $id = '__tailor_tag_'.$tag.'_'.$tags[$tag]++;
+        //         $call = '{{ $__tailor("'.$id.'", "'.$value.'") }}';
 
-                return "<{$tag}{$before}{$call}{$after}>";
-            },
-            $string,
-        );
+        //         return "<{$tag}{$before}{$call}{$after}>";
+        //     },
+        //     $string,
+        // );
 
         return $string;
     }

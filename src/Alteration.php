@@ -9,7 +9,7 @@ class Alteration
 {
     public array $names;
 
-    public ?string $parent = null;
+    // public ?string $parent = null;
 
     public array $props = [];
 
@@ -34,19 +34,19 @@ class Alteration
             return false;
         }
 
-        if ($this->parent && $parents && ! in_array($this->parent, $parents)) {
-            return false;
-        }
+        // if ($this->parent && $parents && ! in_array($this->parent, $parents)) {
+        //     return false;
+        // }
 
         return true;
     }
 
-    public function parent(string $parent): static
-    {
-        $this->parent = $parent;
+    // public function parent(string $parent): static
+    // {
+    //     $this->parent = $parent;
 
-        return $this;
-    }
+    //     return $this;
+    // }
 
     public function props(array $props): static
     {
@@ -94,17 +94,17 @@ class Alteration
         return $this;
     }
 
-    public function tag(
-        $name,
-        string|array|Closure $classes = [],
-    ): static {
-        $name = '__tailor_tag_'.Str::replace('#', '_', $name);
-        $this->slots[$name] = [
-            'classes' => $classes,
-        ];
+    // public function tag(
+    //     $name,
+    //     string|array|Closure $classes = [],
+    // ): static {
+    //     $name = '__tailor_tag_'.Str::replace('#', '_', $name);
+    //     $this->slots[$name] = [
+    //         'classes' => $classes,
+    //     ];
 
-        return $this;
-    }
+    //     return $this;
+    // }
 
     public function replace(?array $replace): static
     {
