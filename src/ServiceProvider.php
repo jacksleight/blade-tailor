@@ -16,9 +16,19 @@ class ServiceProvider extends BaseServiceProvider
 
     public function boot()
     {
-        app('blade.compiler')->prepareStringsForCompilationUsing(function ($string) {
-            return Tailor::inject($string);
-        });
+        $this->publishes([
+            __DIR__.'/../config/tailor.php' => config_path('tailor.php'),
+        ], 'tailor-config');
+
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/tailor.php', 'tailor'
+        );
+
+        if (config('tailor.intercept')) {
+            app('blade.compiler')->prepareStringsForCompilationUsing(function ($string) {
+                return Tailor::intercept($string);
+            });
+        }
 
         View::creator('*', function ($view) {
             return Tailor::prepare($view);

@@ -167,7 +167,7 @@ class TailorManager
             ->merge($result['attributes'] ?? []);
     }
 
-    public function inject($string)
+    public function intercept($string)
     {
         if (Str::contains($string, '@tailor')) {
             return $string;
