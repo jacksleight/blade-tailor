@@ -61,11 +61,6 @@ class TailorManager
             }
         }
 
-        // If there are no alterations return data as is
-        if ($alterations->isEmpty()) {
-            return $data;
-        }
-
         // Find attribute bags and convert them to custom instances
         foreach ($data as $key => $value) {
             if ($value instanceof ComponentAttributeBag) {
@@ -73,6 +68,11 @@ class TailorManager
             } elseif ($value instanceof ComponentSlot) {
                 $data[$key]->attributes = new View\ComponentAttributeBag($value->attributes->all());
             }
+        }
+
+        // If there are no alterations return data as is
+        if ($alterations->isEmpty()) {
+            return $data;
         }
 
         // Collect args to pass to closures
