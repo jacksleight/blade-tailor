@@ -132,38 +132,44 @@ class TailorManager
             $default = (string) $default;
         }
 
-        $default = Arr::toCssClasses($default);
-        $passed = Arr::toCssClasses($bag['class']);
+        $default = Arr::wrap($default);
+        $passed = Arr::wrap($bag['class']);
+        $merged = [...$default, ...$passed];
+
+        $string = Arr::toCssClasses($merged);
         $bag = $bag->except('class');
 
-        if (! $key = Str::match('/__tailor_key_.*?__/', $default.$passed)) {
-            return $bag->tailorClass([$default, $passed]);
+        if (! $key = Str::match('/__tailor_key_.*?__/', $string)) {
+            return $bag->tailorClass($this->resolveClasses($merged));
         }
 
         $result = $this->results[$key] ?? null;
 
-        $default = Str::replace($key, '', $default);
-        $passed = Str::replace($key, '', $passed);
-
         if (! $result) {
-            return $bag->tailorClass([$default, $passed]);
+            $resolved = $this->resolveClasses($merged);
+            $resolved = Str::replace($key, '', $resolved);
+
+            return $bag->tailorClass($resolved);
         }
 
         if ($result['reset']) {
-            $default = null;
+            $default = [];
         } elseif ($result['replace'] || $result['remove']) {
-            $default = collect(explode(' ', $default))
+            $default = collect(explode(' ', Arr::toCssClasses($default)))
                 ->reject(fn ($class) => in_array($class, $result['remove']))
                 ->map(fn ($class) => $result['replace'][$class] ?? $class)
-                ->join(' ');
+                ->all();
         }
 
+        $resolved = $this->resolveClasses([
+            ...$default,
+            ...$passed,
+            ...$result['classes'],
+        ]);
+        $resolved = Str::replace($key, '', $resolved);
+
         return $bag
-            ->tailorClass($this->resolveClasses([
-                $default,
-                $passed,
-                ...$result['classes'],
-            ]))
+            ->tailorClass($resolved)
             ->merge($result['attributes'] ?? []);
     }
 
@@ -243,7 +249,7 @@ unset(\$__tailor_name);
 ?>";
     }
 
-    protected function resolveClasses($classes)
+    public function resolveClasses($classes)
     {
         $classes = collect($classes)
             ->mapWithKeys(function ($value, $key) {
