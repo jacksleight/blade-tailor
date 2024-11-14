@@ -126,3 +126,7 @@ export default {
     // ...
 }
 ```
+
+## Sponsoring 
+
+This addon is completely free to use. However fixing bugs, adding features and helping users takes time and effort. If you find this addon useful and would like to support its development any [contribution](https://github.com/sponsors/jacksleight) would be greatly appreciated. Thanks! 🙂
