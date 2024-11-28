@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 (2024-11-28)
+
+- [fix] Shorthand syntax when components aren't tailored
+- [fix] Attribute bag when components aren't tailored
+
 ## 0.3.0 (2024-11-13)
 
 - [break] Intercepting external components is now opt-in
