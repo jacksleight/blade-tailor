@@ -301,11 +301,9 @@ unset(\$__tailor_name);
             ->mapWithKeys(fn ($group) => [$group['prefixHash'] => $group])
             ->get($prefix);
 
-        if (! $group) {
-            return;
+        if ($group) {
+            $prefix = $group['prefix'];
         }
-
-        $prefix = $group['prefix'];
 
         $name = Str::between($name, 'components.', '.index');
 

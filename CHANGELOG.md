@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 (2024-11-28)
+
+- [fix] Resolving component names
+
 ## 0.3.1 (2024-11-28)
 
 - [fix] Shorthand syntax when components aren't tailored
