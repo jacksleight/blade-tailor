@@ -8,6 +8,6 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'intercept' => false,
+    'intercept' => env('TAILOR_INTERCEPT', false),
 
 ];
