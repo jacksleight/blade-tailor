@@ -87,27 +87,27 @@ class TailorManager
             $bag = $slot === 'root'
                 ? $data['attributes']
                 : ($data[$slot] ?? null)?->attributes;
-            $result = [
-                'name' => $name,
-                'replace' => $alterations
-                    ->flatMap(fn ($alteration) => $alteration->replace)
-                    ->all(),
-                'remove' => $alterations
-                    ->flatMap(fn ($alteration) => $alteration->remove)
-                    ->all(),
-                'reset' => $alterations
-                    ->contains(fn ($alteration) => $alteration->reset),
-                'classes' => $alterations
-                    ->flatMap(fn ($alteration) => Arr::wrap($this
-                        ->evaluate($alteration->slots[$slot]['classes'] ?? [], $args)))
-                    ->all(),
-                'attributes' => $alterations
-                    ->flatMap(fn ($alteration) => $this
-                        ->evaluate($alteration->slots[$slot]['attributes'] ?? [], $args))
-                    ->all(),
-            ];
+            $replace = $alterations
+                ->flatMap(fn ($alteration) => $alteration->replace);
+            $remove = $alterations
+                ->flatMap(fn ($alteration) => $alteration->remove);
+            $reset = $alterations
+                ->contains(fn ($alteration) => $alteration->reset);
+            $classes = $alterations
+                ->flatMap(fn ($alteration) => Arr::wrap($this
+                    ->evaluate($alteration->slots[$slot]['classes'] ?? [], $args)));
+            $attributes = $alterations
+                ->flatMap(fn ($alteration) => $this
+                    ->evaluate($alteration->slots[$slot]['attributes'] ?? [], $args));
             $key = '__tailor_key_'.uniqid().'__';
-            $this->results[$key] = $result;
+            $this->results[$key] = [
+                'name' => $name,
+                'replace' => $replace->all(),
+                'remove' => $remove->all(),
+                'reset' => $reset,
+                'classes' => $classes->all(),
+                'attributes' => $attributes->all(),
+            ];
             if (! $bag) {
                 $bag = new View\ComponentAttributeBag;
                 $bags[$slot] = $bag;
@@ -199,22 +199,6 @@ class TailorManager
                 $string,
             );
         }
-
-        // Allow hooking into plain HTML tags with hard coded classes
-        // I don't like this, ideally it wouldn't be necessary, very experimental
-        // $tags = [];
-        // $string = Str::replaceMatches(
-        //     '/<((?!x-)[a-z-]+)(\s[^>]*?class=")((?!\{)[^"]+(?!\{))("[^>]*)>/i',
-        //     function ($match) use (&$tags) {
-        //         [$match, $tag, $before, $value, $after] = $match;
-        //         $tags[$tag] = $tags[$tag] ?? 1;
-        //         $id = '__tailor_tag_'.$tag.'_'.$tags[$tag]++;
-        //         $call = '{{ $__tailor("'.$id.'", "'.$value.'") }}';
-
-        //         return "<{$tag}{$before}{$call}{$after}>";
-        //     },
-        //     $string,
-        // );
 
         return $string;
     }

@@ -26,7 +26,7 @@ class Alteration
         $this->names = $names;
     }
 
-    public function matches(?string $name, ?array $parents = null): bool
+    public function matches(?string $name): bool
     {
         $match = collect($this->names)
             ->contains(fn ($pattern) => Str::is($pattern, $name));
@@ -34,19 +34,8 @@ class Alteration
             return false;
         }
 
-        // if ($this->parent && $parents && ! in_array($this->parent, $parents)) {
-        //     return false;
-        // }
-
         return true;
     }
-
-    // public function parent(string $parent): static
-    // {
-    //     $this->parent = $parent;
-
-    //     return $this;
-    // }
 
     public function props(array $props): static
     {
