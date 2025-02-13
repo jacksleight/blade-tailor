@@ -58,7 +58,7 @@ Tailor::component('package::button')
     ]);
 
 // Target multiple components
-Tailor::component(['package::*'])
+Tailor::component(['package::*', 'other::input'])
     ->replace([ // Replace default classes
         'text-sm' => 'text-base',
     ])
