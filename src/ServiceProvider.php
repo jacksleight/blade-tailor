@@ -5,7 +5,6 @@ namespace JackSleight\BladeTailor;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
-use Illuminate\View\Factory;
 
 class ServiceProvider extends BaseServiceProvider
 {
@@ -36,14 +35,6 @@ class ServiceProvider extends BaseServiceProvider
 
         Blade::directive('tailor', function ($expression) {
             return Tailor::compile($expression);
-        });
-
-        Factory::macro('tailorInfo', function () {
-            return [
-                'parents' => collect($this->componentStack)
-                    ->map(fn ($name) => Tailor::resolveName($name))
-                    ->all(),
-            ];
         });
 
         if (file_exists($file = resource_path('tailor.php'))) {

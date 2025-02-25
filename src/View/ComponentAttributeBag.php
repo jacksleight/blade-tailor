@@ -33,4 +33,26 @@ class ComponentAttributeBag extends BaseComponentAttributeBag
 
         return $key;
     }
+
+    public function tailorInject($attributes)
+    {
+        foreach ($attributes as $key => $value) {
+            $this[$key] = $value;
+        }
+
+        return $this;
+    }
+
+    public function tailorExtract($prefix)
+    {
+        $attributes = [];
+        foreach ($this->attributes as $key => $value) {
+            if (Str::startsWith($key, $prefix.'.')) {
+                $attributes[Str::after($key, $prefix.'.')] = $value;
+                unset($this[$key]);
+            }
+        }
+
+        return $attributes;
+    }
 }

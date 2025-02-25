@@ -6,8 +6,10 @@ use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Illuminate\View\ComponentAttributeBag;
-use Illuminate\View\ComponentSlot;
+use Illuminate\View\ComponentAttributeBag as BaseComponentAttributeBag;
+use Illuminate\View\ComponentSlot as BaseComponentSlot;
+use JackSleight\BladeTailor\View\ComponentAttributeBag;
+use JackSleight\BladeTailor\View\ComponentSlot;
 use TailwindMerge\Laravel\Facades\TailwindMerge;
 
 class TailorManager
@@ -27,17 +29,17 @@ class TailorManager
         return $alteration;
     }
 
-    public function alterations(?string $name, ?array $parents = null): Collection
+    public function alterations(?string $name): Collection
     {
         return collect($this->alterations)
-            ->filter(fn ($alteration) => $alteration->matches($name, $parents));
+            ->filter(fn ($alteration) => $alteration->matches($name));
     }
 
     public function resolve($data, $props = [])
     {
         $name = $data['__tailor_name'] ?? null;
 
-        $alterations = $this->alterations($name, view()->tailorInfo()['parents']);
+        $alterations = $this->alterations($name);
 
         // Merge alteration props into default props
         $props = $alterations
@@ -47,7 +49,7 @@ class TailorManager
             ->all();
 
         // Same logic as Laravel's @props directive
-        $data['attributes'] = $data['attributes'] ?? new ComponentAttributeBag;
+        $data['attributes'] = $data['attributes'] ?? new BaseComponentAttributeBag;
         foreach ($data['attributes']->onlyProps($props) as $key => $value) {
             $data[$key] = $data[$key] ?? $value;
         }
@@ -61,13 +63,42 @@ class TailorManager
             }
         }
 
-        // Find attribute bags and convert them to custom instances
+        // Rename any props with invalid names
         foreach ($data as $key => $value) {
-            if ($value instanceof ComponentAttributeBag) {
-                $data[$key] = new View\ComponentAttributeBag($value->all());
-            } elseif ($value instanceof ComponentSlot) {
-                $data[$key]->attributes = new View\ComponentAttributeBag($value->attributes->all());
+            if (Str::contains($key, '.')) {
+                $data[Str::replace('.', '_', $key)] = $value;
+                unset($data[$key]);
             }
+        }
+
+        // Find default slots
+        $slots = collect($props)
+            ->filter(fn ($value) => $value instanceof ComponentSlot)
+            ->all();
+
+        // Find non-slot slot values and hydrate them to real instances
+        foreach ($slots as $key => $slot) {
+            if ($data[$key] && ! $data[$key] instanceof BaseComponentSlot) {
+                if ($hydrate = $props[$key]->hydrate()) {
+                    $data[$key] = new ComponentSlot(null, [$hydrate => $data[$key]]);
+                } else {
+                    $data[$key] = new ComponentSlot($data[$key]);
+                }
+            }
+        }
+
+        // Find attribute bags and slots and convert them to custom instances
+        foreach ($data as $key => $value) {
+            if ($value instanceof BaseComponentAttributeBag) {
+                $data[$key] = new ComponentAttributeBag($value->all());
+            } elseif ($value instanceof BaseComponentSlot) {
+                $data[$key] = new ComponentSlot($value->toHtml(), $value->attributes->all());
+            }
+        }
+
+        // Reallocate shorthand slot attributtes to the slot instances
+        foreach ($slots as $key => $slot) {
+            $data[$key]->attributes->tailorInject($data['attributes']->tailorExtract($key));
         }
 
         // If there are no alterations return data as is
@@ -109,7 +140,7 @@ class TailorManager
                 'attributes' => $attributes->all(),
             ];
             if (! $bag) {
-                $bag = new View\ComponentAttributeBag;
+                $bag = new View\BaseComponentAttributeBag;
                 $bags[$slot] = $bag;
             }
             $bag->tailorKeyInject($key);
@@ -126,7 +157,7 @@ class TailorManager
         return $data;
     }
 
-    public function apply(View\ComponentAttributeBag $bag, $default)
+    public function apply(ComponentAttributeBag $bag, $default)
     {
         if (is_object($default)) {
             $default = (string) $default;
@@ -276,7 +307,7 @@ unset(\$__tailor_name);
     public function resolveName($name)
     {
         if (! Str::contains($name, '::')) {
-            return;
+            return $name;
         }
 
         [$prefix, $name] = explode('::', $name);
